@@ -1,0 +1,9 @@
+packages:
+  - "packages/*"
+
+pnpm:
+  minimumReleaseAge: "3 days"
+
+catalog:
+  zod: ^4.1.13
+  typescript: ^6

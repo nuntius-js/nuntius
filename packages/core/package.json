@@ -1,0 +1,39 @@
+{
+  "name": "@nuntius-js/core",
+  "version": "0.0.1",
+  "description": "Type-safe, durable notification engine for TypeScript",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts"
+  },
+  "scripts": {
+    "build": "tsdown --config tsdown.config.ts",
+    "typecheck": "tsc --build",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "tsdown": "^0.21.1",
+    "typescript": "5.9.2",
+    "vitest": "^4.1.10"
+  }
+}
