@@ -69,7 +69,10 @@
     "typescript/switch-exhaustiveness-check": "error",
     "typescript/unbound-method": "error",
     "typescript/use-unknown-in-catch-callback-variable": "error",
-    "typescript/strict-boolean-expressions": ["error", { "allowNullableObject": true, "allowNumber": false, "allowString": false }],
+    "typescript/strict-boolean-expressions": [
+      "error",
+      { "allowNullableObject": true, "allowNumber": false, "allowString": false }
+    ],
     "typescript/no-confusing-void-expression": "error",
     "typescript/no-deprecated": "warn",
     "typescript/no-empty-object-type": "error",
