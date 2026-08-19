@@ -26,7 +26,8 @@ import type {
   SmsChannel,
 } from "../notification.ts";
 import { email, notification } from "../../notification/index.ts";
-import type { NuntiusConfig, NuntiusInstance, ProviderAdapter } from "../instance.ts";
+import type { NuntiusConfig, NuntiusInstance } from "../instance.ts";
+import type { DeliveryContext, ProviderAdapter, ProviderSendResult } from "../../provider/index.ts";
 
 const handleDeliveryStatus = (status: DeliveryStatus): string => {
   switch (status) {
@@ -259,6 +260,29 @@ type InvoicePaidDef = NotificationDefinition<{ amount: number }> & {
 type WelcomeDef = NotificationDefinition<{ name: string }> & { readonly nuntiusId: "welcome" };
 
 describe("instance types", () => {
+  it("ProviderSendResult is the locked discriminated union", () => {
+    expectTypeOf<ProviderSendResult>().toEqualTypeOf<
+      | { success: true; messageId: string | null }
+      | { success: false; error: unknown; messageId?: string | null }
+    >();
+  });
+
+  it("DeliveryContext carries the pipeline state the adapter needs", () => {
+    type Ctx = DeliveryContext;
+    expectTypeOf<Ctx["notificationId"]>().toEqualTypeOf<string>();
+    expectTypeOf<Ctx["config"]>().toEqualTypeOf<Readonly<ChannelConfig>>();
+    expectTypeOf<Ctx["payload"]>().toEqualTypeOf<unknown>();
+    expectTypeOf<Ctx["recipient"]>().toEqualTypeOf<Recipient | undefined>();
+    expectTypeOf<Ctx["contact"]>().toEqualTypeOf<Contact>();
+  });
+
+  it("ProviderAdapter.send takes a DeliveryContext and returns the result union", () => {
+    expectTypeOf<ProviderAdapter["name"]>().toEqualTypeOf<string>();
+    expectTypeOf<ProviderAdapter["send"]>().toEqualTypeOf<
+      (ctx: DeliveryContext) => Promise<ProviderSendResult>
+    >();
+  });
+
   it("accepts a mock provider", () => {
     const mockProvider: ProviderAdapter = {
       name: "mock",

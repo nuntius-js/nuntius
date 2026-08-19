@@ -1,15 +1,7 @@
 import type { AnyNotificationDefinition } from "./notification.ts";
 import type { Plugin } from "./plugin.ts";
 import type { BatchOptions, BatchResult, SendOptions, SendResult } from "./send.ts";
-
-export type ProviderSendResult =
-  | { success: true; messageId: string | null }
-  | { success: false; error: unknown; messageId?: string | null };
-
-export type ProviderAdapter = {
-  name: string;
-  send(ctx: unknown): Promise<ProviderSendResult>;
-};
+import type { ProviderAdapter } from "../provider/index.ts";
 
 export type NotificationMethods<P> = {
   send(opts: SendOptions<P>): Promise<SendResult<P>>;
