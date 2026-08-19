@@ -28,7 +28,11 @@ export type SendResult<P = unknown> = {
 
 export type BatchOptions<P> = SendOptions<P> & { idempotencyKey?: string };
 
+export type FailedSendResult<P = unknown> = SendResult<P> & {
+  status: "failed";
+};
+
 export type BatchResult<P = unknown> = {
   results: SendResult<P>[];
-  failures: SendResult<P>[];
+  failures: FailedSendResult<P>[];
 };

@@ -7,6 +7,7 @@ import type {
   BatchOptions,
   BatchResult,
   Contact,
+  FailedSendResult,
   Recipient,
   RecipientResolver,
   SendOptions,
@@ -17,11 +18,14 @@ import type {
   AnyNotificationDefinition,
   BuiltinChannel,
   ChannelConfig,
+  ChannelNeeds,
+  ContactKind,
   EmailChannel,
   NotificationDefinition,
   PushChannel,
   SmsChannel,
 } from "../notification.ts";
+import { email, notification } from "../../notification/index.ts";
 import type { NuntiusConfig, NuntiusInstance, ProviderAdapter } from "../instance.ts";
 
 const handleDeliveryStatus = (status: DeliveryStatus): string => {
@@ -79,9 +83,22 @@ describe("notification types", () => {
   it("ChannelConfig is the open base — any door name and extra options are allowed", () => {
     expectTypeOf<ChannelConfig>().toEqualTypeOf<{
       readonly channel: string;
+      readonly needs: ChannelNeeds;
       [key: string]: unknown;
     }>();
     expectTypeOf<BuiltinChannel>().toExtend<ChannelConfig>();
+  });
+
+  it("ContactKind is the closed union of address kinds; ChannelNeeds adds the explicit 'none' sentinel", () => {
+    expectTypeOf<ContactKind>().toEqualTypeOf<"email" | "phone" | "pushToken">();
+    expectTypeOf<ChannelNeeds>().toEqualTypeOf<"email" | "phone" | "pushToken" | "none">();
+    expectTypeOf<ChannelConfig["needs"]>().toEqualTypeOf<ChannelNeeds>();
+  });
+
+  it("built-in channels pin their needs to the matching address kind — no mismatched labels", () => {
+    expectTypeOf<EmailChannel["needs"]>().toEqualTypeOf<"email">();
+    expectTypeOf<SmsChannel["needs"]>().toEqualTypeOf<"phone">();
+    expectTypeOf<PushChannel["needs"]>().toEqualTypeOf<"pushToken">();
   });
 
   it("built-in channel names stay precise in autocomplete", () => {
@@ -94,7 +111,10 @@ describe("notification types", () => {
     const invoicePaid = {
       nuntiusId: "invoice.paid",
       schema: z.object({ amount: z.number() }),
-      channels: [{ channel: "email" }, { channel: "sms" }],
+      channels: [
+        { channel: "email", needs: "email" },
+        { channel: "sms", needs: "phone" },
+      ],
       _payload: { amount: 1 },
     } satisfies NotificationDefinition<{ amount: number }>;
 
@@ -105,7 +125,7 @@ describe("notification types", () => {
     const invoicePaid = {
       nuntiusId: "invoice.paid",
       schema: z.object({ amount: z.number() }),
-      channels: [{ channel: "slack", webhookUrl: "https://hooks.example/slack" }],
+      channels: [{ channel: "slack", needs: "none", webhookUrl: "https://hooks.example/slack" }],
       _payload: { amount: 1 },
     } satisfies NotificationDefinition<{ amount: number }>;
   });
@@ -183,7 +203,13 @@ describe("send types", () => {
   it("BatchResult splits results into failures subset", () => {
     type Result = BatchResult<{ amount: number }>;
     expectTypeOf<Result["results"]>().toEqualTypeOf<SendResult<{ amount: number }>[]>();
-    expectTypeOf<Result["failures"]>().toEqualTypeOf<SendResult<{ amount: number }>[]>();
+    expectTypeOf<Result["failures"]>().toEqualTypeOf<FailedSendResult<{ amount: number }>[]>();
+  });
+
+  it("FailedSendResult narrows status to 'failed' and extends SendResult", () => {
+    type Failed = FailedSendResult<{ amount: number }>;
+    expectTypeOf<Failed>().toExtend<SendResult<{ amount: number }>>();
+    expectTypeOf<Failed["status"]>().toEqualTypeOf<"failed">();
   });
 });
 
@@ -236,15 +262,27 @@ describe("instance types", () => {
   it("accepts a mock provider", () => {
     const mockProvider: ProviderAdapter = {
       name: "mock",
-      channels: ["email"],
       send: async () => {
         await Promise.resolve();
         return { success: true, messageId: "m-1" };
       },
     };
 
-    const config: NuntiusConfig = { providers: [mockProvider] };
-    expectTypeOf(config.providers).toEqualTypeOf<ReadonlyArray<ProviderAdapter>>();
+    const config: NuntiusConfig = { providers: { email: mockProvider }, notifications: [] };
+    expectTypeOf(config.providers).toEqualTypeOf<Record<string, ProviderAdapter>>();
+  });
+
+  it("accepts a failing provider with a required error and no invented message id", () => {
+    const failingProvider: ProviderAdapter = {
+      name: "down-provider",
+      send: async () => {
+        await Promise.resolve();
+        return { success: false, error: new Error("provider rejected") };
+      },
+    };
+
+    const config: NuntiusConfig = { providers: { email: failingProvider }, notifications: [] };
+    expectTypeOf(config.providers).toEqualTypeOf<Record<string, ProviderAdapter>>();
   });
 
   it("accepts plugins in the config", () => {
@@ -256,8 +294,18 @@ describe("instance types", () => {
         },
       },
     };
-    const config: NuntiusConfig = { providers: [], plugins: [logger] };
+    const config: NuntiusConfig = { providers: {}, plugins: [logger], notifications: [] };
     expectTypeOf(config.plugins).toEqualTypeOf<ReadonlyArray<Plugin> | undefined>();
+  });
+
+  it("accepts an annotated config with notifications present (no explicit generic)", () => {
+    const InvoicePaid = notification({
+      nuntiusId: "invoice.paid",
+      schema: z.object({ amount: z.number() }),
+      channels: [email()],
+    });
+    const config: NuntiusConfig = { providers: {}, notifications: [InvoicePaid] };
+    expectTypeOf(config.notifications).toEqualTypeOf<ReadonlyArray<AnyNotificationDefinition>>();
   });
 
   it("maps registered notifications to typed methods keyed by verbatim nuntiusId", () => {

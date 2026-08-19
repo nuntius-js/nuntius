@@ -2,10 +2,13 @@ import type { AnyNotificationDefinition } from "./notification.ts";
 import type { Plugin } from "./plugin.ts";
 import type { BatchOptions, BatchResult, SendOptions, SendResult } from "./send.ts";
 
+export type ProviderSendResult =
+  | { success: true; messageId: string | null }
+  | { success: false; error: unknown; messageId?: string | null };
+
 export type ProviderAdapter = {
   name: string;
-  channels: ReadonlyArray<string>;
-  send(ctx: unknown): Promise<{ success: boolean; messageId: string; error?: unknown }>;
+  send(ctx: unknown): Promise<ProviderSendResult>;
 };
 
 export type NotificationMethods<P> = {
@@ -13,9 +16,12 @@ export type NotificationMethods<P> = {
   batch(items: BatchOptions<P>[]): Promise<BatchResult<P>>;
 };
 
-export type NuntiusConfig<Notifications extends ReadonlyArray<AnyNotificationDefinition> = []> = {
-  notifications?: Notifications;
-  providers: ReadonlyArray<ProviderAdapter>;
+export type NuntiusConfig<
+  Notifications extends ReadonlyArray<AnyNotificationDefinition> =
+    ReadonlyArray<AnyNotificationDefinition>,
+> = {
+  notifications: Notifications;
+  providers: Record<string, ProviderAdapter>;
   plugins?: ReadonlyArray<Plugin>;
 };
 
