@@ -97,3 +97,36 @@ export class NuntiusProviderError extends NuntiusError {
     };
   }
 }
+
+export class NuntiusResolveError extends NuntiusError {
+  declare readonly code: "RESOLVE_ERROR";
+  constructor(opts: NuntiusErrorOptions) {
+    super({ ...opts, code: "RESOLVE_ERROR" });
+  }
+}
+
+export type NuntiusDeliverErrorOptions = NuntiusErrorOptions & {
+  provider: string;
+  retriable: boolean;
+};
+
+export class NuntiusDeliverError extends NuntiusError {
+  declare readonly code: "DELIVER_ERROR";
+  readonly provider: string;
+  readonly retriable: boolean;
+  constructor(opts: NuntiusDeliverErrorOptions) {
+    super({ ...opts, code: "DELIVER_ERROR" });
+    this.provider = opts.provider;
+    this.retriable = opts.retriable;
+  }
+  override toJSON() {
+    return { ...super.toJSON(), provider: this.provider, retriable: this.retriable };
+  }
+}
+
+export class NuntiusFinalizeError extends NuntiusError {
+  declare readonly code: "FINALIZE_ERROR";
+  constructor(opts: NuntiusErrorOptions) {
+    super({ ...opts, code: "FINALIZE_ERROR" });
+  }
+}
