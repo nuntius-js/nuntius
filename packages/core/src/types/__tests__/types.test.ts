@@ -13,7 +13,15 @@ import type {
   SendOptions,
   SendResult,
 } from "../send.ts";
-import type { BaseHookContext, HookContext, HookName, Plugin, PluginHook } from "../plugin.ts";
+import type {
+  BaseHookContext,
+  ErrorHook,
+  ErrorHookContext,
+  HookContext,
+  HookName,
+  Plugin,
+  PluginHook,
+} from "../plugin.ts";
 import type {
   AnyNotificationDefinition,
   BuiltinChannel,
@@ -239,7 +247,13 @@ describe("plugin types", () => {
     expectTypeOf<PluginHook>().toEqualTypeOf<(ctx: HookContext) => void | Promise<void>>();
   });
 
-  it("a Plugin registers hooks under Partial<Record<HookName, PluginHook>>", () => {
+  it("ErrorHook receives ErrorHookContext with stage and error", () => {
+    expectTypeOf<ErrorHook>().toEqualTypeOf<(ctx: ErrorHookContext) => void | Promise<void>>();
+    expectTypeOf<ErrorHookContext["stage"]>().toEqualTypeOf<DeliveryStage>();
+    expectTypeOf<ErrorHookContext["error"]>().toEqualTypeOf<NuntiusError>();
+  });
+
+  it("a Plugin registers stage hooks under Partial<Record<HookName, PluginHook>> and onError as ErrorHook", () => {
     const logger: Plugin = {
       id: "logger",
       hooks: {
@@ -247,10 +261,15 @@ describe("plugin types", () => {
           expectTypeOf(ctx).toEqualTypeOf<HookContext>();
         },
         "after:deliver": async () => {},
+        onError: (ctx) => {
+          expectTypeOf(ctx).toEqualTypeOf<ErrorHookContext>();
+        },
       },
     };
 
-    expectTypeOf(logger.hooks).toEqualTypeOf<Partial<Record<HookName, PluginHook>> | undefined>();
+    expectTypeOf(logger.hooks).toEqualTypeOf<
+      (Partial<Record<HookName, PluginHook>> & { onError?: ErrorHook }) | undefined
+    >();
   });
 });
 
