@@ -6,3 +6,5 @@ export * from "./provider/index.ts";
 export { definePlugin } from "./plugin/index.ts";
 export { collectHooks } from "./pipeline/index.ts";
 export type { HooksByStage } from "./pipeline/index.ts";
+export { send, sendBatch } from "./send/index.ts";
+export type { SendInput, BatchInput } from "./send/index.ts";
